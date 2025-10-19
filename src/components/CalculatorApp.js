@@ -2,162 +2,149 @@ import React, { useState } from "react";
 
 function CalculatorApp() {
   const [display, setDisplay] = useState("0");
-  const [inputString, setInputString] = useState("0");
   const [previousValue, setPreviousValue] = useState(null);
-  const [currentValue, setCurrentValue] = useState(0);
   const [operation, setOperation] = useState(null);
-  const [waitingForNewValue, setWaitingForNewValue] = useState(false);
+  const [shouldResetDisplay, setShouldResetDisplay] = useState(false);
   const [memory, setMemory] = useState(0);
+  const [lastOperand, setLastOperand] = useState(null); // Lưu số hạng cuối để lặp lại phép tính
+  const [lastOperation, setLastOperation] = useState(null); // Lưu phép tính cuối
 
+  // Handle number button clicks
   const handleNumber = (num) => {
-    if (waitingForNewValue) {
+    if (shouldResetDisplay) {
       setDisplay(String(num));
-      setWaitingForNewValue(false);
+      setShouldResetDisplay(false);
     } else {
-      setDisplay(display === "0" ? String(num) : display + String(num));
+      setDisplay(display === "0" ? String(num) : display + num);
     }
-    setCurrentValue(
-      parseFloat(display === "0" ? String(num) : display + String(num))
-    );
   };
 
   const handleDecimal = () => {
-    if (waitingForNewValue) {
+    if (shouldResetDisplay) {
       setDisplay("0.");
-      setWaitingForNewValue(false);
-      return;
-    }
-
-    if (!display.includes(".")) {
+      setShouldResetDisplay(false);
+    } else if (!display.includes(".")) {
       setDisplay(display + ".");
     }
   };
 
   const handleOperation = (op) => {
-    const inputValue = parseFloat(display);
-
-    if (operation && waitingForNewValue) {
-      setOperation(op);
-      return;
-    }
+    const currentValue = parseFloat(display);
 
     if (previousValue === null) {
-      setPreviousValue(inputValue);
-    } else if (operation) {
-      const result = calculateResult(previousValue, inputValue, operation);
-      setCurrentValue(result);
+      setPreviousValue(currentValue);
+    } else if (operation && !shouldResetDisplay) {
+      const result = calculateResult(previousValue, currentValue, operation);
       setDisplay(String(result));
       setPreviousValue(result);
+    } else {
+      setPreviousValue(currentValue);
     }
 
-    setWaitingForNewValue(true);
     setOperation(op);
+    setShouldResetDisplay(true);
+    setLastOperand(null);
+    setLastOperation(null);
   };
 
-  const calculateResult = (firstOperand, secondOperand, operation) => {
-    switch (operation) {
+  const calculateResult = (prev, current, op) => {
+    switch (op) {
       case "+":
-        return firstOperand + secondOperand;
+        return prev + current;
       case "-":
-        return firstOperand - secondOperand;
+        return prev - current;
       case "×":
-        return firstOperand * secondOperand;
+        return prev * current;
       case "÷":
-        if (secondOperand === 0) {
-          alert("Cannot divide by zero");
-          return 0;
-        }
-        return firstOperand / secondOperand;
+        return current !== 0 ? prev / current : 0;
       default:
-        return secondOperand;
+        return current;
     }
   };
 
   const handleEquals = () => {
-    const inputValue = parseFloat(display);
+    const currentValue = parseFloat(display);
 
-    if (previousValue !== null && operation) {
-      const result = calculateResult(previousValue, inputValue, operation);
-      setCurrentValue(result);
+    if (lastOperand !== null && lastOperation !== null) {
+      const result = calculateResult(currentValue, lastOperand, lastOperation);
       setDisplay(String(result));
+      return;
+    }
+
+    if (operation && previousValue !== null) {
+      let operand;
+
+      if (shouldResetDisplay) {
+        operand = previousValue;
+      } else {
+        operand = currentValue;
+      }
+
+      const result = calculateResult(previousValue, operand, operation);
+      setDisplay(String(result));
+
+      setLastOperand(operand);
+      setLastOperation(operation);
+
       setPreviousValue(null);
       setOperation(null);
-      setWaitingForNewValue(true);
+      setShouldResetDisplay(true);
     }
   };
 
   const handleClear = () => {
     setDisplay("0");
-    setCurrentValue(0);
     setPreviousValue(null);
     setOperation(null);
-    setWaitingForNewValue(false);
+    setShouldResetDisplay(false);
+    setLastOperand(null);
+    setLastOperation(null);
   };
 
   const handleClearEntry = () => {
     setDisplay("0");
-    setCurrentValue(0);
+    setShouldResetDisplay(false);
   };
 
   const handleBackspace = () => {
     if (display.length > 1) {
-      const newDisplay = display.slice(0, -1);
-      setDisplay(newDisplay);
-      setCurrentValue(parseFloat(newDisplay));
+      setDisplay(display.slice(0, -1));
     } else {
       setDisplay("0");
-      setCurrentValue(0);
     }
   };
 
   const handlePercent = () => {
     const value = parseFloat(display);
-    const newValue = value / 100;
-    setDisplay(String(newValue));
-    setCurrentValue(newValue);
+    setDisplay(String(value / 100));
   };
 
   const handleReciprocal = () => {
     const value = parseFloat(display);
     if (value !== 0) {
-      const newValue = 1 / value;
-      setDisplay(String(newValue));
-      setCurrentValue(newValue);
-    } else {
-      alert("Cannot divide by zero");
+      setDisplay(String(1 / value));
     }
   };
 
   const handleSquare = () => {
     const value = parseFloat(display);
-    const newValue = value * value;
-    setDisplay(String(newValue));
-    setCurrentValue(newValue);
+    setDisplay(String(value * value));
   };
 
   const handleSquareRoot = () => {
     const value = parseFloat(display);
     if (value >= 0) {
-      const newValue = Math.sqrt(value);
-      setDisplay(String(newValue));
-      setCurrentValue(newValue);
-    } else {
-      alert("Invalid input for square root");
+      setDisplay(String(Math.sqrt(value)));
     }
   };
 
   const handleNegate = () => {
     const value = parseFloat(display);
-    const newValue = -value;
-    setDisplay(String(newValue));
-    setCurrentValue(newValue);
+    setDisplay(String(-value));
   };
 
   const handleMemoryClear = () => setMemory(0);
-  const handleMemoryRecall = () => {
-    setDisplay(String(memory));
-    setCurrentValue(memory);
-  };
+  const handleMemoryRecall = () => setDisplay(String(memory));
   const handleMemoryAdd = () => setMemory(memory + parseFloat(display));
   const handleMemorySubtract = () => setMemory(memory - parseFloat(display));
   const handleMemoryStore = () => setMemory(parseFloat(display));
@@ -187,12 +174,7 @@ function CalculatorApp() {
           </button>
         </div>
         {/* Display */}
-        <div className="px-6 pt-4 pb 0 text-right">
-          <div className="text-gray-400 text-xl font-light overflow-hidden overflow-ellipsis">
-            {inputString}
-          </div>
-        </div>
-        <div className="px-6 pb-8 pt-2 text-right">
+        <div className="px-6 pb-8 pt-6 text-right">
           <div className="text-white text-5xl font-light overflow-hidden overflow-ellipsis">
             {display}
           </div>
@@ -253,7 +235,7 @@ function CalculatorApp() {
             %
           </button>
           <button
-            onClick={handleClear}
+            onClick={handleClearEntry}
             className="bg-zinc-800 hover:bg-zinc-700 text-white py-4 text-lg rounded transition-colors"
           >
             CE
