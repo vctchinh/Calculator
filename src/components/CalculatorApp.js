@@ -2,14 +2,14 @@ import React, { useState } from "react";
 
 function CalculatorApp() {
   const [display, setDisplay] = useState("0");
+  const [inputString, setInputString] = useState("0");
   const [previousValue, setPreviousValue] = useState(null);
   const [operation, setOperation] = useState(null);
   const [shouldResetDisplay, setShouldResetDisplay] = useState(false);
   const [memory, setMemory] = useState(0);
-  const [lastOperand, setLastOperand] = useState(null); // Lưu số hạng cuối để lặp lại phép tính
-  const [lastOperation, setLastOperation] = useState(null); // Lưu phép tính cuối
+  const [lastOperand, setLastOperand] = useState(null);
+  const [lastOperation, setLastOperation] = useState(null);
 
-  // Handle number button clicks
   const handleNumber = (num) => {
     if (shouldResetDisplay) {
       setDisplay(String(num));
@@ -30,7 +30,7 @@ function CalculatorApp() {
 
   const handleOperation = (op) => {
     const currentValue = parseFloat(display);
-
+    setInputString(display + " " + op);
     if (previousValue === null) {
       setPreviousValue(currentValue);
     } else if (operation && !shouldResetDisplay) {
@@ -67,6 +67,7 @@ function CalculatorApp() {
 
     if (lastOperand !== null && lastOperation !== null) {
       const result = calculateResult(currentValue, lastOperand, lastOperation);
+      setInputString(String(lastOperand) + operation + String(currentValue));
       setDisplay(String(result));
       return;
     }
@@ -81,6 +82,9 @@ function CalculatorApp() {
       }
 
       const result = calculateResult(previousValue, operand, operation);
+      setInputString(
+        String(previousValue) + " " + operation + " " + String(currentValue)
+      );
       setDisplay(String(result));
 
       setLastOperand(operand);
@@ -99,6 +103,7 @@ function CalculatorApp() {
     setShouldResetDisplay(false);
     setLastOperand(null);
     setLastOperation(null);
+    setInputString("");
   };
 
   const handleClearEntry = () => {
@@ -116,31 +121,81 @@ function CalculatorApp() {
 
   const handlePercent = () => {
     const value = parseFloat(display);
-    setDisplay(String(value / 100));
+
+    if (previousValue === null && lastOperation !== null) {
+      const percentValue = (value * value) / 100;
+      setDisplay(String(percentValue));
+      setInputString(String(percentValue));
+      return;
+    }
+
+    if (previousValue === null) {
+      setDisplay("0");
+      setInputString("0");
+    } else {
+      const percentBase = shouldResetDisplay ? previousValue : value;
+      const percentValue = (previousValue * percentBase) / 100;
+      setDisplay(String(percentValue));
+      setInputString(
+        String(previousValue) + " " + operation + " " + String(percentValue)
+      );
+      setShouldResetDisplay(false);
+    }
   };
 
   const handleReciprocal = () => {
     const value = parseFloat(display);
     if (value !== 0) {
       setDisplay(String(1 / value));
+      if (previousValue === null) {
+        setInputString("1/(" + String(value));
+      } else {
+        setInputString(
+          String(previousValue) + " " + operation + " 1/(" + String(value)
+        );
+      }
     }
+    setShouldResetDisplay(false);
   };
 
   const handleSquare = () => {
     const value = parseFloat(display);
     setDisplay(String(value * value));
+    if (previousValue === null) {
+      setInputString("sqr(" + String(value) + ")");
+    } else {
+      setInputString(
+        String(previousValue) + " " + operation + " sqr(" + String(value) + ")"
+      );
+    }
+    setShouldResetDisplay(false);
   };
 
   const handleSquareRoot = () => {
     const value = parseFloat(display);
     if (value >= 0) {
       setDisplay(String(Math.sqrt(value)));
+      if (previousValue === null) {
+        setInputString("sqrt(" + String(value) + ")");
+      } else {
+        setInputString(
+          String(previousValue) +
+            " " +
+            operation +
+            " sqrt(" +
+            String(value) +
+            ")"
+        );
+      }
+      setShouldResetDisplay(false);
     }
   };
 
   const handleNegate = () => {
     const value = parseFloat(display);
     setDisplay(String(-value));
+    setInputString(String(-value));
+    setShouldResetDisplay(false);
   };
 
   const handleMemoryClear = () => setMemory(0);
@@ -174,7 +229,12 @@ function CalculatorApp() {
           </button>
         </div>
         {/* Display */}
-        <div className="px-6 pb-8 pt-6 text-right">
+        <div className="px-6 pb-2 pt-2 text-right">
+          <div className="text-gray-300 text-xl font-light overflow-hidden overflow-ellipsis">
+            {inputString}
+          </div>
+        </div>
+        <div className="px-6 pb-8 pt-2 text-right">
           <div className="text-white text-5xl font-light overflow-hidden overflow-ellipsis">
             {display}
           </div>
