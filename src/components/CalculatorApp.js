@@ -10,7 +10,6 @@ function CalculatorApp() {
   const [lastOperand, setLastOperand] = useState(null);
   const [lastOperation, setLastOperation] = useState(null);
 
-  // New state for history panel
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState([]);
 
@@ -19,7 +18,11 @@ function CalculatorApp() {
       setDisplay(String(num));
       setShouldResetDisplay(false);
     } else {
-      setDisplay(display === "0" ? String(num) : display + num);
+      const newDisplay = display === "0" ? String(num) : display + num;
+      const digitCount = newDisplay.replace(/[^0-9]/g, "").length;
+      if (digitCount <= 16) {
+        setDisplay(newDisplay);
+      }
     }
   };
 
@@ -28,7 +31,12 @@ function CalculatorApp() {
       setDisplay("0.");
       setShouldResetDisplay(false);
     } else if (!display.includes(".")) {
-      setDisplay(display + ".");
+      const newDisplay = display + ".";
+
+      const digitCount = newDisplay.replace(/[^0-9]/g, "").length;
+      if (digitCount <= 16) {
+        setDisplay(newDisplay);
+      }
     }
   };
 
@@ -76,7 +84,6 @@ function CalculatorApp() {
       setInputString(calcString);
       setDisplay(String(result));
 
-      // Add to history
       addToHistory(calcString, result);
       return;
     }
@@ -96,7 +103,6 @@ function CalculatorApp() {
       setInputString(calcString);
       setDisplay(String(result));
 
-      // Add to history
       addToHistory(calcString, result);
 
       setLastOperand(operand);
@@ -229,6 +235,37 @@ function CalculatorApp() {
 
   const clearHistory = () => setHistory([]);
 
+  const formatDisplay = (value) => {
+    const str = String(value);
+
+    let limited = str;
+    const digitsOnly = str.replace(/[^0-9]/g, "");
+    if (digitsOnly.length > 16) {
+      const numValue = parseFloat(str);
+      if (Math.abs(numValue) >= 1) {
+        const intDigits = Math.floor(Math.abs(numValue)).toString().length;
+        const decimalPlaces = Math.max(0, 16 - intDigits);
+        limited = numValue.toFixed(decimalPlaces);
+      } else {
+        limited = numValue.toPrecision(16);
+      }
+    }
+    const parts = limited.split(".");
+    const integerPart = parts[0];
+    const decimalPart = parts[1];
+
+    const isNegative = integerPart.startsWith("-");
+    const absInteger = isNegative ? integerPart.slice(1) : integerPart;
+    const formattedInteger = absInteger.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+    let result = (isNegative ? "-" : "") + formattedInteger;
+    if (decimalPart !== undefined) {
+      result += "." + decimalPart;
+    }
+
+    return result;
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900 p-2 sm:p-4">
       <div className="flex w-full max-w-6xl gap-2 items-start justify-center">
@@ -274,7 +311,7 @@ function CalculatorApp() {
           </div>
           <div className="px-4 pb-4 pt-1 md:px-6 md:pb-6 md:pt-1 text-right">
             <div className="text-white text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-light overflow-hidden overflow-ellipsis">
-              {display}
+              {formatDisplay(display)}
             </div>
           </div>
           {/* Memory Buttons */}
